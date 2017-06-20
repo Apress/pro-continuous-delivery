@@ -1,0 +1,21 @@
+###########################################################
+# Dockerfile for Maven build container images
+# Based on Ubuntu
+###########################################################
+
+# Set the base image to Ubuntu
+FROM ubuntu
+
+# Author / Maintainer
+Nikhil Pathania
+
+###########################################################
+
+# Update the repository sources list
+RUN apt-get update
+
+# Install Maven
+RUN apt-get install maven
+
+# Install Java 
+RUN apt-get install default-jre

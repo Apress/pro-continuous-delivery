@@ -1,0 +1,23 @@
+[Unit]
+Description=Glusterfs Server
+
+After=docker.service
+Requires=docker.service
+
+Before=glusterfs_b@%i.service
+Wants=glusterfs_b@%i.service
+
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill glusterfs%i
+ExecStartPre=-/usr/bin/docker rm glusterfs%i
+ExecStartPre=/bin/bash -c 'if [[ $(docker images --format "{{.Repository}}" gluster/gluster-centos:latest) ]]; then echo "image gluster/gluster-centos:latest already exists"; else /usr/bin/docker pull gluster/gluster-centos:latest; fi'
+
+ExecStart=/usr/bin/docker run --privileged --name glusterfs%i --net=host -p 22:22 gluster/gluster-centos:latest
+
+ExecStop=/usr/bin/docker stop glusterfs%i
+ExecStopPost=-/usr/bin/docker rmi gluster/gluster-centos:last
+ExecStopPost=/bin/bash -c '/usr/bin/docker tag gluster/gluster-centos:latest gluster/gluster-centos:last && /usr/bin/docker rmi gluster/gluster-centos:latest && /usr/bin/docker commit glusterfs%i gluster/gluster-centos:latest'
+
+[X-Fleet]
+Conflicts=glusterfs_a@*.service

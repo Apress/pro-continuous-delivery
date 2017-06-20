@@ -1,0 +1,48 @@
+node('docker_it') {
+stage('Poll') {
+    checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github-account', url: 'https://github.com/pro-continuous-delivery/hello-world-greeting.git']]])
+}
+stage('Build'){
+   	  sh 'mvn clean verify -DskipITs=true';
+}
+stage('Static Code Analysis'){
+    sh 'mvn clean verify sonar:sonar';
+}
+stage ('Integration Test'){
+    sh 'mvn clean verify -Dsurefire.skip=true';
+}
+stage ('Publish to Artifactory'){
+    def server = Artifactory.server 'Default Artifactory Server'
+    def uploadSpec = """{
+    "files": [
+    {
+     "pattern": "target/hello-0.0.1.war",
+     "target": "helloworld-greeting-project/${BUILD_NUMBER}/",
+	 "props": "Integration-Tested=Yes;Performance-Tested=No"
+   }
+           ]
+}"""
+server.upload(uploadSpec)
+}
+    stash includes: 'target/hello-0.0.1.war,src/pt/Hello_World_Test_Plan.jmx', name: 'binary'
+}
+node('docker_pt') {
+stage ('Start Tomcat'){
+    sh '''cd /home/jenkins/tomcat/bin 
+    ./startup.sh'''; 
+}
+stage ('Deploy to Testing Env'){
+    unstash 'binary'
+    sh 'cp target/hello-0.0.1.war /home/jenkins/tomcat/webapps/';
+}
+stage ('Performance Testing'){
+    sh '''cd /opt/jmeter/bin/
+    ./jmeter.sh -n -t /home/jenkins/workspace/helloworld-greeting-cd/src/pt/Hello_World_Test_Plan.jmx -l /home/jenkins/workspace/helloworld-greeting-cd/test_report.jtl''';
+    step([$class: 'ArtifactArchiver', artifacts: '**/*.jtl'])
+}
+  stage ('Promote build in Artifactory'){
+      withCredentials([usernameColonPassword(credentialsId: 'artifactory-account', variable: 'credentials')]) {
+      sh 'curl -u${credentials} -X PUT "http://172.17.8.108:8081/artifactory/api/storage/helloworld-greeting-project/${BUILD_NUMBER}/hello-0.0.1.war?properties=Performance-Tested=Yes"';
+}
+}
+}

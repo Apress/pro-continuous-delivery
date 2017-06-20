@@ -1,0 +1,20 @@
+[Unit]
+Description=Mount /var/jenkins_home to /volume1
+
+After=docker.service
+Requires=docker.service
+
+After=jenkins_a@%i.service
+Requires=jenkins_a@%i.service
+BindsTo=jenkins_a@1.service
+
+[Service]
+TimeoutStartSec=0
+
+ExecStart=/usr/bin/docker exec -u root jenkins%i /bin/bash -c 'cp -R /var/jenkins_home /var/jenkins_home_backup && mount.glusterfs 172.17.8.101:/volume1 /var/jenkins_home && if [ "$(ls -A /var/jenkins_home)" ]; then echo "jenkins_home directory is in sync with GlusterFS Server"; else cp -R /var/jenkins_home_backup/. /var/jenkins_home; fi && chown -R jenkins:jenkins /var/jenkins_home'
+
+RestartSec=30
+Restart=on-failure
+
+[X-Fleet]
+MachineOf=jenkins_a@%i.service

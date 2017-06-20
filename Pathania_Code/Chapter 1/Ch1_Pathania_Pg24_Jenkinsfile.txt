@@ -1,0 +1,38 @@
+/* CI starts */
+node('docker-ci-agent'){
+
+	stage('build'){
+	// some build step
+	}
+
+	stage('integration testing'){
+	// some integration steps
+	}
+
+}
+/* CI ends */
+
+/* Testing starts */
+parallel stage('acceptance test chrome'){
+	
+	node('docker-chrome'){
+	// steps to perform acceptance test on chrome
+	}
+
+},
+	stage('acceptance test Opera'){
+		
+	node('docker-opera'){
+	//steps to perform acceptance test on opera
+	}
+
+}
+
+	stage('acceptance test firefox'){
+		
+	node('docker-firefox'){
+	//steps to perform acceptance test on firefox
+	}
+
+}
+/* Testing ends */

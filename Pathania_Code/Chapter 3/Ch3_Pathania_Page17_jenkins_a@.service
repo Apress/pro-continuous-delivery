@@ -1,0 +1,23 @@
+[Unit]
+Description=Jenkins Master Server with GlusterFS client
+
+After=docker.service
+Requires=docker.service
+
+Before=jenkins_b@%i.service
+Wants=jenkins_b@%i.service
+
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill jenkins%i
+ExecStartPre=-/usr/bin/docker rm jenkins%i
+ExecStartPre=/usr/bin/docker pull nikhilpathania/jenkins_glusterfs_client
+ExecStartPre=/usr/bin/sudo /usr/bin/ip addr add 172.17.8.200/24 dev eth1
+
+ExecStart=/usr/bin/docker run --privileged --name jenkins%i -p 8080:8080 nikhilpathania/jenkins_glusterfs_client
+
+ExecStop=/usr/bin/docker stop jenkins%i
+ExecStopPost=/usr/bin/sudo /usr/bin/ip addr del 172.17.8.200/24 dev eth1
+
+[X-Fleet]
+Conflicts=jenkins_a@*.service

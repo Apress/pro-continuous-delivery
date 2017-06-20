@@ -1,0 +1,17 @@
+[Unit]
+Description=Jenkins Master Server
+
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill jenkins%i
+ExecStartPre=-/usr/bin/docker rm jenkins%i
+
+ExecStart=/usr/bin/docker run --privileged --name jenkins%i -p 8080:8080 jenkinsci/jenkins:lts
+
+ExecStop=/usr/bin/docker stop jenkins%i
+
+[X-Fleet]
+Conflicts=jenkins@*.service
